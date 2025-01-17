@@ -1,8 +1,17 @@
 #!/usr/bin/env python3
-''' Hypermedia pagination '''
+""" Hypermedia Pagination """
 import csv
-import math
-from typing import Dict, List, Tuple
+from math import ceil
+from typing import List, Tuple
+
+
+def index_range(page: int, page_size: int) -> Tuple[int, int]:
+    """ Simple helper function """
+
+    start = (page - 1) * page_size
+    end = page * page_size
+
+    return (start, end)
 
 
 class Server:
@@ -25,36 +34,43 @@ class Server:
         return self.__dataset
 
     def get_page(self, page: int = 1, page_size: int = 10) -> List[List]:
-        ''' def get page '''
-        assert type(page_size) is int and type(page) is int
-        assert page > 0
-        assert page_size > 0
+        """ Finds pagination of dataset """
+        assert isinstance(page, int) and page > 0
+        assert isinstance(page_size, int) and page > 0
+
         self.dataset()
-        i = index_range(page, page_size)
-        if i[0] >= len(self.__dataset):
+
+        if self.__dataset is None:
             return []
-        else:
-            return self.__dataset[i[0]:i[1]]
 
-    def get_hyper(self, page: int = 1, page_size: int = 10) -> Dict:
-        ''' Def get hyper '''
-        dataset_items = len(self.dataset())
+        idx_range = index_range(page, page_size)
+        data = self.__dataset[idx_range[0]:idx_range[1]]
+        return data
+
+    def get_hyper(self, page: int = 1, page_size: int = 10) -> dict:
+        """ Provides information about dataset """
         data = self.get_page(page, page_size)
-        total_pages = math.ceil(dataset_items / page_size)
 
-        p = {
-            "page": page,
-            "page_size": page_size if page < total_pages else 0,
-            "data": data,
-            "next_page": page + 1 if page + 1 < total_pages else None,
-            "prev_page": page - 1 if page - 1 > 0 else None,
-            "total_pages": total_pages
-            }
-        return p
+        data_set = self.__dataset
+        len_set = len(data_set) if data_set else 0
 
+        total_pages = ceil(len_set / page_size) if data_set else 0
 
-def index_range(page: int, page_size: int) -> Tuple[int, int]:
-    ''' Def index range '''
-    index = page * page_size - page_size
-    index_1 = index + page_size
-    return (index, index_1)
+        if not data:
+            page_size = 0
+        else:
+            page_size = len(data)
+
+        prev_page = page - 1 if page > 1 else None
+        next_page = page + 1 if page < total_pages else None
+
+        hyper = {
+            'page_size': page_size,
+            'page': page,
+            'data': data,
+            'next_page': next_page,
+            'prev_page': prev_page,
+            'total_pages': total_pages
+        }
+
+        return hyper
